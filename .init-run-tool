@@ -1,0 +1,4 @@
+{
+    "command": "PORT=<port> BROWSER=none npm start",
+    "working_directory": "/home/kavia/workspace/code-generation/cinequiz-duel-35385-ad866e86/cinequiz_duel_frontend"
+}
