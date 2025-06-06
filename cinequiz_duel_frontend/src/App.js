@@ -10,6 +10,7 @@ import {
   fetchMovieImages,
   fetchSimilarMovies,
 } from "./tmdbApi";
+import MysteryMovieBox from "./MysteryMovieBox";
 
 // Theme and layout colors (from project context)
 const COLORS = {
@@ -214,6 +215,7 @@ function QuizList({ industry, accentColor }) {
   return (
     <div>
       <QuizCard title="Mystery Movie Box" accentColor={accentColor}>
+        {/* Use separately implemented MysteryMovieBox */}
         <MysteryMovieBox industry={industry} accentColor={accentColor} />
       </QuizCard>
       <QuizCard title="Speed Cast Match" accentColor={accentColor}>
@@ -233,115 +235,7 @@ function QuizList({ industry, accentColor }) {
 }
 
 //
-// --- QUIZ 1: Mystery Movie Box
-//
-// - Show hints (genre, lead actor, quote if available)
-// - Guess the movie, then reveal
-//
-function MysteryMovieBox({ industry, accentColor }) {
-  const [movie, setMovie] = useState(null);
-  const [hints, setHints] = useState({ genre: "", actor: "", quote: "" });
-  const [guess, setGuess] = useState("");
-  const [reveal, setReveal] = useState(false);
-  const [feedback, setFeedback] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  // PUBLIC_INTERFACE
-  /** Loads a random movie & hint for this industry */
-  async function loadMovie() {
-    setLoading(true);
-    try {
-      // Fetch a random movie from TMDb, with language filter
-      const opts = industry === "kollywood"
-        ? { with_original_language: "ta", sort_by: "popularity.desc", region: "IN" }
-        : { with_original_language: "en", sort_by: "popularity.desc", region: "US" };
-      const results = await fetchMovies({ ...opts, page: Math.ceil(Math.random() * 10) });
-      const chosen = results.results[Math.floor(Math.random() * results.results.length)];
-      const detail = await fetchMovieDetails(chosen.id, { language: "en-US" });
-      // Extract genre, actor
-      const credits = await fetchMovieCredits(chosen.id);
-      const genres = detail.genres && detail.genres.length > 0 ? detail.genres.map(g => g.name).join(", ") : "N/A";
-      const actor = credits.cast && credits.cast.length > 0 ? credits.cast[0].name : "N/A";
-      // Use tagline as "quote" if present
-      setMovie(detail);
-      setHints({
-        genre: genres,
-        actor: actor,
-        quote: detail.tagline || "No quote available",
-      });
-      setGuess("");
-      setReveal(false);
-      setFeedback("");
-    } catch {
-      setHints({ genre: "?", actor: "?", quote: "?" });
-      setMovie(null);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // PUBLIC_INTERFACE
-  /** Handles guess submission */
-  function handleGuess(e) {
-    e.preventDefault();
-    if (!guess || !movie) return;
-    // Match ignoring case and punctuation for robustness
-    const clean = s => (s || "").replace(/[^a-z0-9]/gi, "").toLowerCase();
-    if (clean(guess) === clean(movie.title)) {
-      setFeedback("🎉 Correct! The movie is " + movie.title);
-    } else {
-      setFeedback("❌ Not quite. Try again or reveal!");
-    }
-  }
-
-  return (
-    <div style={{ minHeight: 95 }}>
-      <button className="btn" onClick={loadMovie} style={{ background: accentColor, color: "#1e1e1e", fontWeight: 600, marginBottom: 12 }}>
-        {loading ? "Loading..." : "Open Mystery Box"}
-      </button>
-      {movie && (
-        <div>
-          <div style={{ fontSize: 15, margin: "10px 0 2px", color: accentColor, fontWeight: 600, letterSpacing: 0.08 }}>Hints:</div>
-          <ul style={{ margin: 0, paddingLeft: 22, fontSize: 13, color: "#222" }}>
-            <li><b>Genre:</b> {hints.genre}</li>
-            <li><b>Main Actor:</b> {hints.actor}</li>
-            <li><b>Quote:</b> <span style={{ fontStyle: "italic" }}>{hints.quote}</span></li>
-          </ul>
-          {!reveal ? (
-            <form onSubmit={handleGuess} style={{marginTop:10, display: "flex", gap:8, alignItems:"center"}}>
-              <input
-                className="input"
-                type="text"
-                style={{ padding: "7px", border: `1px solid ${accentColor}`, borderRadius: 6, width: 120, fontSize: 14 }}
-                placeholder="Guess movie title"
-                value={guess}
-                autoComplete="off"
-                onChange={e => setGuess(e.target.value)}
-                disabled={loading}
-              />
-              <button className="btn" style={{ background: accentColor, color: "#222", fontWeight: 600, padding: "7px 16px", fontSize: 14 }} type="submit" disabled={!guess}>
-                Guess
-              </button>
-              <button className="btn" style={{ background: "#eee", color: accentColor, padding: "6px 13px" }} type="button" onClick={() => setReveal(true)}>
-                Reveal
-              </button>
-            </form>
-          ) : (
-            <div style={{ marginTop: 12, fontSize: 15}}>
-              <b>It was:</b> <span style={{ color: accentColor }}>{movie.title}</span><br />
-              {movie.poster_path && (
-                <img alt="Poster" src={getPosterUrl(movie.poster_path, "w185")} style={{ marginTop: 10, borderRadius: 6, maxHeight: 150, boxShadow: "0 2px 12px #0003" }} />
-              )}
-            </div>
-          )}
-          <div style={{ marginTop: 7, minHeight: 18, color: accentColor, fontWeight: 600 }}>
-            {feedback}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 //
 // --- QUIZ 2: Speed Cast Match
